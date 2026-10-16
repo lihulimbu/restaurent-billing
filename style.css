@@ -1,0 +1,247 @@
+/* ============================================================
+   Phase 1 — File 3 Test: style.css loaded and structure check
+   Paste into browser console after opening index.html
+   ============================================================ */
+(function () {
+  const results = [];
+  const pass = (label) => results.push({ status: 'PASS', label });
+  const fail = (label, detail) => results.push({ status: 'FAIL', label, detail });
+  const warn = (label, detail) => results.push({ status: 'WARN', label, detail });
+
+  // --- Check stylesheet is linked and loaded ---
+  const cssLink = document.querySelector('link[href="style.css"]');
+  if (!cssLink) {
+    fail('style.css link missing in HTML');
+    return finish();
+  }
+  pass('style.css link present');
+
+  // --- Check stylesheet is actually parsed (stylesheet rules count) ---
+  let sheet = null;
+  try {
+    sheet = Array.from(document.styleSheets).find(s =>
+      s.href && s.href.endsWith('style.css')
+    );
+  } catch (e) {
+    // CORS restriction may apply when opening file://, but styleSheets entry still exists
+  }
+
+  if (!sheet) {
+    fail('style.css not found in document.styleSheets');
+    return finish();
+  }
+  pass('style.css found in document.styleSheets');
+
+  // --- Loaded success via computed style on :root ---
+  const rootStyle = getComputedStyle(document.documentElement);
+  const accent = rootStyle.getPropertyValue('--color-accent').trim();
+  if (accent) {
+    pass('Design tokens loaded (--color-accent = ' + accent + ')');
+  } else {
+    fail('Design tokens not loaded', '--color-accent is empty');
+  }
+
+  // --- Design token spot checks ---
+  const tokens = [
+    '--color-bg','--color-surface','--color-text','--color-text-2',
+    '--color-border','--color-accent','--color-accent-soft',
+    '--color-success','--color-warning','--color-danger',
+    '--space-1','--space-2','--space-3','--space-4','--space-5','--space-6',
+    '--radius','--radius-md','--radius-lg',
+    '--font-xs','--font-sm','--font-base','--font-md','--font-lg','--font-xl',
+    '--sidebar-width','--topbar-height',
+    '--z-modal','--z-toast',
+    '--transition','--transition-fast'
+  ];
+  const missingTokens = tokens.filter(t => !rootStyle.getPropertyValue(t).trim());
+  missingTokens.length
+    ? fail('Missing design tokens', missingTokens)
+    : pass('All ' + tokens.length + ' required design tokens present');
+
+  // --- Layout tokens resolve correctly ---
+  const sidebarW = rootStyle.getPropertyValue('--sidebar-width').trim();
+  sidebarW === '240px' ? pass('--sidebar-width = 240px') : warn('--sidebar-width unexpected', sidebarW);
+
+  const topbarH = rootStyle.getPropertyValue('--topbar-height').trim();
+  topbarH === '56px' ? pass('--topbar-height = 56px') : warn('--topbar-height unexpected', topbarH);
+
+  // --- Body styling applied ---
+  const bodyStyle = getComputedStyle(document.body);
+  const bodyBg = bodyStyle.backgroundColor;
+  if (bodyBg && bodyBg !== 'rgba(0, 0, 0, 0)') {
+    pass('Body background applied (' + bodyBg + ')');
+  } else {
+    fail('Body background not applied');
+  }
+
+  // --- Font family applied ---
+  const bodyFont = bodyStyle.fontFamily || '';
+  bodyFont.toLowerCase().includes('inter') || bodyFont.toLowerCase().includes('system')
+    ? pass('Body font-family applied')
+    : warn('Body font-family unexpected', bodyFont);
+
+  // --- Login card styled ---
+  const loginCard = document.querySelector('.login-card');
+  if (loginCard) {
+    const cs = getComputedStyle(loginCard);
+    cs.borderRadius !== '0px' ? pass('Login card has border-radius') : fail('Login card border-radius missing');
+    cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)'
+      ? pass('Login card has background')
+      : fail('Login card background missing');
+    parseInt(cs.padding) > 0 ? pass('Login card has padding') : fail('Login card padding missing');
+  }
+
+  // --- Sidebar hidden behind login by default ---
+  const app = document.getElementById('app');
+  if (app && app.classList.contains('hidden')) {
+    pass('App shell hidden at load (login visible)');
+  }
+
+  // --- Button classes resolve ---
+  const testBtn = document.createElement('button');
+  testBtn.className = 'btn btn-primary';
+  testBtn.textContent = 'Test';
+  document.body.appendChild(testBtn);
+  const btnStyle = getComputedStyle(testBtn);
+  const btnRadius = btnStyle.borderRadius;
+  btnRadius !== '0px'
+    ? pass('Button border-radius applied (' + btnRadius + ')')
+    : fail('Button border-radius missing');
+  document.body.removeChild(testBtn);
+
+  // --- Form input classes resolve ---
+  const testInput = document.createElement('input');
+  testInput.className = 'form-input';
+  document.body.appendChild(testInput);
+  const inputStyle = getComputedStyle(testInput);
+  parseInt(inputStyle.paddingTop) > 0
+    ? pass('Form input padding applied')
+    : fail('Form input padding missing');
+  document.body.removeChild(testInput);
+
+  // --- Card class resolves ---
+  const testCard = document.createElement('div');
+  testCard.className = 'card card-padded';
+  document.body.appendChild(testCard);
+  const cardStyle = getComputedStyle(testCard);
+  cardStyle.backgroundColor && cardStyle.backgroundColor !== 'rgba(0, 0, 0, 0)'
+    ? pass('Card background applied')
+    : fail('Card background missing');
+  document.body.removeChild(testCard);
+
+  // --- Table class resolves ---
+  const testTable = document.createElement('table');
+  testTable.className = 'table';
+  testTable.innerHTML = '<thead><tr><th>H</th></tr></thead><tbody><tr><td>D</td></tr></tbody></table>';
+  document.body.appendChild(testTable);
+  const thStyle = getComputedStyle(testTable.querySelector('th'));
+  thStyle.textTransform === 'uppercase'
+    ? pass('Table header uppercase transform applied')
+    : warn('Table header transform not applied', thStyle.textTransform);
+  document.body.removeChild(testTable);
+
+  // --- Badge class resolves ---
+  const testBadge = document.createElement('span');
+  testBadge.className = 'badge badge-success';
+  testBadge.textContent = 'OK';
+  document.body.appendChild(testBadge);
+  const badgeStyle = getComputedStyle(testBadge);
+  badgeStyle.backgroundColor && badgeStyle.backgroundColor !== 'rgba(0, 0, 0, 0)'
+    ? pass('Badge background applied')
+    : fail('Badge background missing');
+  document.body.removeChild(testBadge);
+
+  // --- Modal class resolves ---
+  const testModal = document.createElement('div');
+  testModal.className = 'modal hidden';
+  document.body.appendChild(testModal);
+  getComputedStyle(testModal).position === 'fixed'
+    ? pass('Modal position fixed applied')
+    : fail('Modal position not fixed');
+  testModal.classList.remove('hidden');
+  getComputedStyle(testModal).display !== 'none'
+    ? pass('Modal shows when .hidden removed')
+    : fail('Modal still hidden after removing .hidden');
+  document.body.removeChild(testModal);
+
+  // --- Utility class .hidden resolves ---
+  const testHidden = document.createElement('div');
+  testHidden.className = 'hidden';
+  document.body.appendChild(testHidden);
+  getComputedStyle(testHidden).display === 'none'
+    ? pass('Utility .hidden works')
+    : fail('Utility .hidden does not hide element');
+  document.body.removeChild(testHidden);
+
+  // --- Print styles present (media query check) ---
+  let printRuleCount = 0;
+  try {
+    for (const rule of sheet.cssRules) {
+      if (rule.type === CSSRule.MEDIA_RULE && rule.media.mediaText.includes('print')) {
+        printRuleCount++;
+      }
+    }
+  } catch (e) {
+    warn('Cannot inspect cssRules (CORS on file://)', e.message);
+  }
+  if (printRuleCount > 0) {
+    pass('Print media queries present (' + printRuleCount + ' blocks)');
+  } else if (window.location.protocol === 'file:') {
+    warn('Print rules not inspectable over file://', 'test on GitHub Pages or local server');
+  } else {
+    fail('No print media queries found');
+  }
+
+  // --- Check for common print selectors in css via @media print check above ---
+  // Also confirm #printArea rules exist by checking hidden state
+  const printArea = document.getElementById('printArea');
+  if (printArea) {
+    const paDisplay = getComputedStyle(printArea).display;
+    paDisplay === 'none'
+      ? pass('Print area hidden on screen')
+      : fail('Print area visible on screen', paDisplay);
+  }
+
+  // --- Verify no emoji in CSS content via loaded styles ---
+  let emojiInCss = false;
+  try {
+    const cssText = Array.from(sheet.cssRules).map(r => r.cssText).join(' ');
+    const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
+    if (emojiRegex.test(cssText)) emojiInCss = true;
+  } catch (e) { /* ignore CORS */ }
+  emojiInCss ? fail('Emoji found in CSS content') : pass('No emoji in CSS');
+
+  // --- Verify dark button uses dark token ---
+  const darkBtn = document.createElement('button');
+  darkBtn.className = 'btn btn-secondary';
+  document.body.appendChild(darkBtn);
+  const dbColor = getComputedStyle(darkBtn).backgroundColor;
+  dbColor && dbColor !== 'rgba(0, 0, 0, 0)'
+    ? pass('Secondary button background applied')
+    : fail('Secondary button background missing');
+  document.body.removeChild(darkBtn);
+
+  function finish() {
+    console.log('\n============================================');
+    console.log('FILE 3 — style.css TEST RESULTS');
+    console.log('============================================');
+    const grouped = { PASS: [], FAIL: [], WARN: [] };
+    results.forEach(r => grouped[r.status].push(r));
+
+    if (grouped.FAIL.length) {
+      console.log('\nFAILED:');
+      grouped.FAIL.forEach(r => console.log('  X', r.label, r.detail ? '-> ' + JSON.stringify(r.detail) : ''));
+    }
+    if (grouped.WARN.length) {
+      console.log('\nWARNINGS:');
+      grouped.WARN.forEach(r => console.log('  !', r.label, r.detail ? '-> ' + JSON.stringify(r.detail) : ''));
+    }
+    console.log('\nPASSED:', grouped.PASS.length);
+    console.log('FAILED:', grouped.FAIL.length);
+    console.log('WARNINGS:', grouped.WARN.length);
+    console.log('============================================\n');
+    return { passed: grouped.PASS.length, failed: grouped.FAIL.length, warned: grouped.WARN.length, results };
+  }
+
+  return finish();
+})();
